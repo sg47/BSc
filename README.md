@@ -1,24 +1,3 @@
-# 3net
-This repository contains the source code of 3net, proposed in the paper "Learning monocular depth estimation with unsupervised trinocular assumptions", 3DV 2018.
-If you use this code in your projects, please cite our paper:
-
-```
-@inproceedings{3net18,
-  title     = {Learning monocular depth estimation with unsupervised trinocular assumptions},
-  author    = {Poggi, Matteo and
-               Tosi, Fabio and
-               Mattoccia, Stefano},
-  booktitle = {6th International Conference on 3D Vision (3DV)},
-  year = {2018}
-}
-```
-
-For more details:
-[arXiv](http://arxiv.org/abs/1808.01606)
-
-Demo video:
-[youtube](https://www.youtube.com/watch?v=uMA5YWJME4M)
-
 ## Requirements
 
 * `Tensorflow 1.8` (recomended) 
