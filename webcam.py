@@ -31,10 +31,8 @@ import time
 import datetime
 from utils import *
 from trinet import *
-import rospy
-from std_msgs.msg import String
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
+import cvlib as cv
+from cvlib.object_detection import draw_bbox
 
 # forces tensorflow to run on CPU
 #os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
@@ -70,7 +68,7 @@ def callback(data):
     synt_left = (synt_left*255).astype(np.uint8)
     synt_right = (synt_right*255).astype(np.uint8)
     disp_color = (applyColorMap(disp*DEPTH_FACTOR, 'jet')*255).astype(np.uint8)
-    if args.mode == -1:
+    if args.mode == 0:
         toShow_C = cv2.addWeighted(img,0.1,disp_color,0.8,0) # merge left and right into one
     else:
         toShow_C = np.concatenate((img, disp_color), 1)
@@ -107,8 +105,6 @@ def callback(data):
 
 
 def main(_):
-  bridge = CvBridge()
-  image_sub = rospy.Subscriber("/camera/rgb",Image,callback)
   with tf.Graph().as_default():
     height = args.height
     width = args.width
@@ -120,15 +116,13 @@ def main(_):
 
     loader = tf.train.Saver()
     saver = tf.train.Saver()
-    cam = cv2.VideoCapture('test/20190419_121630.mp4')
-
+    cam = cv2.VideoCapture('/home/taher/workspace/BSc/BSc/test/20190419_121630.mp4')
+    #net = cv2.dnn.readNet('/home/taher/workspace/BSc/BSc/darknet_conf/tiny-yolo-voc.weights', '/home/taher/workspace/BSc/BSc/darknet_conf/tiny-yolo-voc.cfg')
     with tf.Session() as sess:
         sess.run(init)
         loader.restore(sess, args.checkpoint_dir)
-        rospy.spin()
-        return
         while True:
-          for i in range(4):
+          for i in range(2):
             cam.grab()
           ret_val, img = cam.read()
 
@@ -140,25 +134,37 @@ def main(_):
           start = time.time()
           disp_cr, disp_cl, synt_left, synt_right = sess.run([model.disparity_cr, model.disparity_cl, model.warp_left, model.warp_right], feed_dict={placeholders['im0']: img_batch})
           disp = build_disparity(disp_cr, disp_cl)
+          
+          
+          #run cvlib
+          #bbox, label, conf = cv.detect_common_objects(img)
+
           end = time.time()
 
           # Bring back images to uint8 and prepare visualization
           img = (img*255).astype(np.uint8)
-          synt_left = (synt_left*255).astype(np.uint8)
-          synt_right = (synt_right*255).astype(np.uint8)
+          #synt_left = (synt_left*255).astype(np.uint8)
+          #synt_right = (synt_right*255).astype(np.uint8)
           disp_color = (applyColorMap(disp*DEPTH_FACTOR, 'jet')*255).astype(np.uint8)
           if args.mode == -1:
               toShow_C = cv2.addWeighted(img,0.1,disp_color,0.8,0) # merge left and right into one
+              # draw rectangle
+              upper_left = (int(width * 0.3), int(height * 0.25))
+              bottom_right = (int(width * 0.7), int(height * 0.75))
+              toShow_C = cv2.rectangle(toShow_C,upper_left,bottom_right,(100,100,100),1)
           else:
+              #output_image = draw_bbox(img, bbox, label, conf)
+              #toShow_C = output_image
               toShow_C = np.concatenate((img, disp_color), 1)
 
 
-          narrow_disp = np.zeros_like(synt_left)
-          wide_disp = np.zeros_like(synt_left)
+          #narrow_disp = np.zeros_like(synt_left)
+          #wide_disp = np.zeros_like(synt_left)
           # If synthetic views are active
           if args.mode==0:
-            synt_left = np.zeros_like(synt_left)
-            synt_right = np.zeros_like(synt_left)
+            pass
+            #synt_left = np.zeros_like(synt_left)
+            #synt_right = np.zeros_like(synt_left)
           else:
             # If SGM is active
             if args.mode>1:
@@ -193,5 +199,4 @@ def main(_):
         cam.release()
 
 if __name__ == '__main__':
-    rospy.init_node('depth_estimator', anonymous=True)
     tf.app.run()
