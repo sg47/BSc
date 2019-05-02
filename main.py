@@ -45,6 +45,7 @@ parser.add_argument('--width', dest='width', type=int, default=512, help='width 
 parser.add_argument('--height', dest='height', type=int, default=256, help='height of input images')
 parser.add_argument('--checkpoint_dir', dest='checkpoint_dir', type=str, default='checkpoint/3DV18/3net', help='checkpoint directory')
 parser.add_argument('--mode', dest='mode', type=int, default=0, help='Select the demo mode [0: depth-from-mono, 1:view synthesis, 2:stereo]')
+parser.add_argument('--video', dest='video', type=str, default='test/test.mp4', help='choosing webcam or video file path')
 
 # Norm. factors for visualization
 DEPTH_FACTOR = 15
@@ -140,15 +141,15 @@ def main(_):
 
     loader = tf.train.Saver()
     saver = tf.train.Saver()
-    cam = cv2.VideoCapture('/home/taher/workspace/BSc/BSc/test/20190419_121630.mp4')
+    cam = cv2.VideoCapture(args.video)
     videoWriter = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 25, (width,height))
     net = cv2.dnn.readNet('/home/taher/workspace/BSc/BSc/darknet_conf/tiny-yolo-voc.weights', '/home/taher/workspace/BSc/BSc/darknet_conf/tiny-yolo-voc.cfg')
     with tf.Session() as sess:
         sess.run(init)
         loader.restore(sess, args.checkpoint_dir)
         while True:
-          # for i in range(2):
-          #   cam.grab()
+          for i in range(3):
+            cam.grab()
           ret_val, img = cam.read()
           if img is None:
                 continue
