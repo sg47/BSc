@@ -141,14 +141,17 @@ def main(_):
     loader = tf.train.Saver()
     saver = tf.train.Saver()
     cam = cv2.VideoCapture('/home/taher/workspace/BSc/BSc/test/20190419_121630.mp4')
+    videoWriter = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 25, (width,height))
     net = cv2.dnn.readNet('/home/taher/workspace/BSc/BSc/darknet_conf/tiny-yolo-voc.weights', '/home/taher/workspace/BSc/BSc/darknet_conf/tiny-yolo-voc.cfg')
     with tf.Session() as sess:
         sess.run(init)
         loader.restore(sess, args.checkpoint_dir)
         while True:
-          for i in range(2):
-            cam.grab()
+          # for i in range(2):
+          #   cam.grab()
           ret_val, img = cam.read()
+          if img is None:
+                continue
 
           # Prepare input to the network
           img = cv2.resize(img, (width, height)).astype(np.float32) / 255.
@@ -156,16 +159,16 @@ def main(_):
 
           # Run 3net!!!
           start = time.time()
-          
+          # if args.mode != 0:
           disp_cr, disp_cl, synt_left, synt_right = sess.run([model.disparity_cr, model.disparity_cl, model.warp_left, model.warp_right], feed_dict={placeholders['im0']: img_batch})
           disp = build_disparity(disp_cr, disp_cl)
           
 
           # Bring back images to uint8 and prepare visualization
           img = (img*255).astype(np.uint8)
+          
           #run dnn yolo3
-          if img is None:
-                continue
+          # if args.mode != 1:
           begin = time.time()
           rgb_show_img = img.copy()
           Width = img.shape[1]
@@ -204,7 +207,7 @@ def main(_):
           elif args.mode in [1,2]:
             disp_color = (applyColorMap(disp*DEPTH_FACTOR, 'magma')*255).astype(np.uint8)
           
-          if args.mode == -1 or args.mode == 3:
+          if args.mode == -1 or args.mode == 2:
               toShow_C = cv2.addWeighted(img,0.1,disp_color,0.8,0) # merge disparity and img
               overlay = toShow_C.copy()
               # draw rectangle
@@ -232,7 +235,6 @@ def main(_):
                       print('mean_distance: ', distance)
                       
                       
-                      toShow_C = cv2.addWeighted(overlay, alpha, toShow_C, 1 - alpha,0, 0)
                       area = (intersection.x2-intersection.x1)*(intersection.y2-intersection.y1)
                       print('area: ', area)
                       if distance > 0.65:
@@ -261,6 +263,7 @@ def main(_):
                         cv2.putText(toShow_C, text, (textX, textY ), font, 1, (200, 200, 255), 2)
 
                       # cv2.rectangle(overlay, intersection.upper_left(), intersection.bottom_right(), (0, 50, 50), -1)
+                      toShow_C = cv2.addWeighted(overlay, alpha, toShow_C, 1 - alpha,0, 0)
                       print('..................................intersection')
 
                   draw_bounding_box(toShow_C, class_ids[i], confidences[i], round(x), round(y), round(x+w), round(y+h))
@@ -303,7 +306,7 @@ def main(_):
               # upper_left = (int(width * 0.3), int(height * 0.25))
               # bottom_right = (int(width * 0.7), int(height * 0.75))
               # toShow_C = cv2.rectangle(toShow_C,upper_left,bottom_right,(100,100,100),1)
-          elif args.mode == 2:
+          elif args.mode == 3:
               #output_image = draw_bbox(img, bbox, label, conf)
               #toShow_C = output_image
               for i in indices:
@@ -321,13 +324,14 @@ def main(_):
               toShow_C = np.concatenate((img, disp_color), 1)
 
           cv2.imshow('3net', toShow_C)
+          videoWriter.write(toShow_C)
 
           k = cv2.waitKey(1)
           print()
           print(k)
           print()
           if k in [1048685, 109]: # 'm' to change mode (shifting 0->1->2->3->0)
-            args.mode = (args.mode+1) % 4
+            args.mode = (args.mode+1) % 3
           if k in [1048603, 27]: # esc to quit
             break
           if k in [1048688, 112]: # 'p' to pause
@@ -335,6 +339,7 @@ def main(_):
           end = time.time()
           print("Time: " + str((end - start)))
         cam.release()
+        videoWriter.release()
 
 def warning():
       # 1.
