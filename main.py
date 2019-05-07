@@ -142,17 +142,19 @@ def main(_):
     loader = tf.train.Saver()
     saver = tf.train.Saver()
     cam = cv2.VideoCapture(args.video)
-    videoWriter = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 25, (width,height))
+    videoWriter = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 20, (width,height))
     net = cv2.dnn.readNet('/home/taher/workspace/BSc/BSc/darknet_conf/tiny-yolo-voc.weights', '/home/taher/workspace/BSc/BSc/darknet_conf/tiny-yolo-voc.cfg')
     with tf.Session() as sess:
         sess.run(init)
         loader.restore(sess, args.checkpoint_dir)
         while True:
-          for i in range(3):
-            cam.grab()
+          # for i in range(3):
+          #   cam.grab()
           ret_val, img = cam.read()
-          if img is None:
-                continue
+          # if img is None:
+          #       continue
+          # cv2.imshow('3net', cv2.resize(img, (width, height)))
+          # k = cv2.waitKey(0)
 
           # Prepare input to the network
           img = cv2.resize(img, (width, height)).astype(np.float32) / 255.
@@ -174,8 +176,12 @@ def main(_):
           rgb_show_img = img.copy()
           Width = img.shape[1]
           Height = img.shape[0]
-          scale = 0.00392
+          scale = 0.00392 
           blob = cv2.dnn.blobFromImage(img, scale, (512,256), (0,0,0), True, crop=False)
+          blobb = blob.reshape(blob.shape[2],blob.shape[3],blob.shape[1])
+          cv2.imshow('Blob',blobb)
+          k = cv2.waitKey(0)
+
           net.setInput(blob)
           outs = net.forward(get_output_layers(net))
           class_ids = []
